@@ -4,125 +4,197 @@ import requests
 
 URL= "https://opentdb.com/api_config.php"
 
+def get_amount():
+  while True:
+    clear()
+    print('Enter number of question(1-10): ')
+    selection = int(input())
+
+    if selection in range(1,10):
+      return str(selection)
+
+def get_category():
+  categories = {
+    '1': 'Any',
+    '2': 'General Knowledge',
+    '3': 'Entertainment: Books',
+    '4': 'Entertainment: Film',
+    '5': 'Entertainment: Music',
+    '6': 'Entertainment: Television',
+    '7': 'Science & Nature',
+    '8': 'Science: Computers',
+    '9': 'Science: Mathematics',
+    '10': 'Sports',
+    '11': 'Geography',
+    '12': 'History',
+    
+  }
+
+  while True:
+    clear()
+    print('Categories:\n')
+
+    for i in categories:
+      print(f'{i} : {categories[i]}')
+
+    print('\nEnter the number of your selection: ')
+    selection = int(input())
+    
+    if selection in range(1, 12):
+      return str(selection + 7) 
+
+def get_difficulty():
+  while True:
+    clear()
+    print('Difficulty:\n')
+    print('1: Any\n2: Easy\n3: Medium\n4: Hard\n')
+    print('Enter the number of your selection.')
+    selection = int(input())
+    
+    if selection == 1:
+      return 'any'
+    if selection == 2:
+      return 'easy'
+    if selection == 3:
+      return 'medium'
+    if selection == 4:
+      return 'hard'
+
+def get_game_type():
+  while True:
+    clear()
+    print('Game Types:\n')
+    print('1: Any Type')
+    print('2: Multiple Choice')
+    print('3: True/False')
+    print('\nEnter the number of your selection: ')
+    selection = int(input())
+
+    if selection == 1:
+      return 'any'
+    if selection == 2:
+      return 'multiple'
+    if selection == 3:
+      return 'boolean'   
+
+def get_json():
+  amount = get_amount()
+  category = get_category()
+  difficulty = get_difficulty()
+  game_type = get_game_type()
+
+  full_url = base_url 
+  full_url += f'?amount={amount}'
+  if int(category) > 8:
+    full_url += f'&category={category}'
+  if difficulty != 'any':
+    full_url += f'&difficulty={difficulty}'
+  if game_type != 'any':
+    full_url += f'&type={game_type}'
+
+  r = requests.get(full_url)
+  j = json.loads(r.text)
+  return j['results']
+
+def true_or_false(data):
+  print('1: True')
+  print('2: False\n')
+
+  selecting = True
+  while selecting:
+    print('Make your selection: ')
+    answer = int(input())
+
+    if answer == 1:
+      answer = 'true'
+      selecting = False
+    if answer == 2:
+      answer = 'false'
+      selecting = False
+
+  if answer == data['correct_answer']:
+    print('Correct!')
+    time.sleep(2)
+    return True
+  else:
+    print(f"Incorrect! The correct answer was {data['correct_answer']}")
+    time.sleep(2)
+    return False
+
+def multiple_choice(data):
+  answers = [ 
+    data['correct_answer'],
+    data['incorrect_answers'][0],
+    data['incorrect_answers'][1],
+    data['incorrect_answers'][2]
+  ]
+
+  random.shuffle(answers)
+
+  for i in range(0, 4):
+    print(f'{i + 1}: {answers[i]}')
+  print('\n')
+
+  selecting = True
+  while selecting:
+    print('Enter your selection: ')
+    choice = int(input())
+
+    if choice in range(1, 4):
+      selecting = False
+
+  if answers[choice - 1] == data['correct_answer']:
+    print('Correct!')
+    time.sleep(2)
+    return True
+  else:
+    print(f"Incorrect! The correct answer was {data['correct_answer']}")
+    time.sleep(2)
+    return False
+
+def display_summary(score, num_questions):
+  clear()
+  print('Game over!\n')
+  print(f'{score}/{num_questions} correct.\n')
+  print('Would you like to play again?\n')
+  print('1: Yes\n2: No\b')
+
+  while True:
+    print('Enter your selection: ')
+    choice = int(input())
+    if choice == 1:
+      return True
+    if choice == 2:
+      return False  
+
+def play_game():
+  score = 0
+  num_questions = 0 
+  data = get_json()
+  
+  for i in data:
+    num_questions += 1
+
+    clear()
+    print(f"Question #{num_questions}")
+    print(f"Category: {i['category']}")
+    print(f"Difficulty: {i['difficulty']}\n")
+    print(f"Question:\n{i['question']}\n") 
+
+    if i['type'] == 'boolean':
+      correct = true_or_false(i)
+    else:
+      correct = multiple_choice(i)
+
+    if correct:
+      score += 1
+
+  return display_summary(score, num_questions) 
+ 
 def main():
+  play = True
+  while play:
+    play = play_game()
 
-     data= requests.get(URL).json()
 
-from requests import get
-
-
-class Trivia:
-    def __init__(self, with_token: bool):
-        """
-        Initialize an instance of the Trivia class
-        :param with_token: If True then the instance will uses a session token
-        """
-        self.token = get_token() if with_token else None
-
-    def request(self, num_questions: int, category: Category = None,
-                diffculty: Diffculty = None, type_: Type = None) -> dict:
-        """
-        Send an api request to https://opentdb.com/
-        Limitations:
-        Only 1 Category can be requested per API Call.
-        To get questions from any category, don't specify a category.
-        A Maximum of 50 Questions can be retrieved per call.
-
-        :param num_questions: the number of questions,
-        must be between 1 and 50 (inclusive)
-
-        :param category: the category of the question. None for any category
-
-        :param diffculty: the diffculty of the question. None for any diffculty
-
-        :param type_: the type of the question. None for any type
-
-        :return: the api call response
-
-        :rtype: dict
-
-        :raises: ValueError when the num_questions parameter is less than 1
-        or greater than 50
-        """
-        result = get(
-            self.__url(num_questions, category, diffculty, type_)).json()
-        if result['response_code'] in (3, 4):
-            self.token = get_token()
-            return self.request(num_questions, category, diffculty, type_)
-        else:
-            return decode_dict(result)
-
-    async def request_async(self, session: ClientSession, close_session: bool,
-                            num_questions: int, category: Category = None,
-                            diffculty: Diffculty = None,
-                            type_: Type = None) -> dict:
-        """
-        Send an api request to https://opentdb.com/
-        Limitations:
-        Only 1 Category can be requested per API Call.
-        To get questions from any category, don't specify a category.
-        A Maximum of 50 Questions can be retrieved per call.
-
-        :param session: an Aiohttp client session.
-
-        :param close_session: True to close the session after the request.
-
-        :param num_questions: the number of questions,
-        must be between 1 and 50 (inclusive)
-
-        :param category: the category of the question. None for any category
-
-        :param diffculty: the diffculty of the question. None for any diffculty
-
-        :param type_: the type of the question. None for any type
-
-        :return: the api call response
-
-        :rtype: dict
-
-        :raises: ValueError when the num_questions parameter is less than 1
-        or greater than 50
-
-        :raises ClientResponseError if the HTTP response code isn't 200
-        """
-        try:
-            return await self.__request(
-                session, num_questions, category, diffculty, type_)
-        finally:
-            if close_session:
-                session.close()
-
-    async def __request(self, session: ClientSession, num_questions: int,
-                        category: Category = None, diffculty: Diffculty = None,
-                        type_: Type = None) -> dict:
-        """
-        Helper method for the async request.
-        """
-        resp = await make_request(
-            session, self.__url(num_questions, category, diffculty, type_))
-        result = await resp.json()
-        if result['response_code'] in (3, 4):
-            self.token = get_token()
-            return await self.__request(
-                session, num_questions, category, diffculty, type_)
-        else:
-            return decode_dict(result)
-
-    def __url(self, num_questions, category, diffculty, type_):
-        """
-        Helper method to generate request url.
-        """
-        if num_questions < 1 or num_questions > 50:
-            raise ValueError
-        url = 'https://opentdb.com/api.php?amount={}&encode=base64'.format(
-            num_questions)
-        if category is not None:
-            url += '&category={}'.format(category.value)
-        if diffculty is not None:
-            url += '&difficulty={}'.format(diffculty.value)
-        if type_ is not None:
-            url += '&type={}'.format(type_.value)
-        if self.token is not None:
-            url += '&token={}'.format(self.token)
-        return url
-
+main()
